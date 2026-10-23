@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#102d25">
+<title>POKEREZA — тренажёр покера</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#0b1713;--panel:#12251e;--line:#2a473a;--text:#f4f7f4;--muted:#a9c0b3;--accent:#d5ef9b}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#102d25 0,#0b1713 55%);color:var(--text);font:16px/1.45 system-ui,-apple-system,sans-serif;min-height:100vh}
+main{max-width:520px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.logo{font-size:22px;font-weight:900;letter-spacing:1.2px}.tag{font-size:11px;color:var(--accent);border:1px solid #48664f;border-radius:20px;padding:5px 9px}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.panel{background:rgba(18,37,30,.96);border:1px solid var(--line);border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 12px 32px #0002}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#0d1d17;border-radius:12px;padding:10px;text-align:center}.stat b{display:block;font-size:21px}.stat span{font-size:11px;color:var(--muted)}
+.progress{height:6px;background:#0b1c15;border-radius:9px;overflow:hidden;margin:10px 0 4px}.progress div{height:100%;width:0;background:var(--accent);transition:width .2s}
+.table{background:radial-gradient(ellipse at center,#237957,#12543e 70%);border:5px solid #4c3728;border-radius:48% / 32%;padding:20px 12px;min-height:172px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;box-shadow:inset 0 0 0 2px #75a98b55}
+.eyebrow{font-size:11px;letter-spacing:1px;color:#d6f4e3;text-transform:uppercase}
+.cards{display:flex;gap:9px;justify-content:center}
+.card{width:65px;height:88px;border-radius:9px;background:#fff;color:#18231d;display:flex;flex-direction:column;justify-content:space-between;padding:7px;font-weight:800;box-shadow:0 4px 10px #0003}
+.card .rank{font-size:25px;line-height:1}.card .suit{font-size:22px;align-self:flex-end}.red{color:#c62828}
+.hand-title{font-weight:750;text-align:center}.meta{font-size:13px;color:#e0f0e6;text-align:center}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px 8px;font-weight:750}
+.action{background:#25483a;color:white;border:1px solid #3e6854}
+.action:disabled{opacity:.65;cursor:default;background:#172d24}
+.result{margin-top:14px;padding:13px;border-radius:12px;background:#0b1c15;border:1px solid var(--line)}
+.result.good{border-color:#6f9d52}.result.bad{border-color:#b86a57}
+.result h3{margin:0 0 5px;font-size:15px}.result p{margin:0;color:#d3e2d8;font-size:14px}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.section-title{font-weight:800;margin-bottom:10px}
+.small{font-size:12px;color:var(--muted)}
+.next{width:100%;margin-top:12px;background:#25483a;color:#fff;border:1px solid #3e6854}
+.notice{font-size:13px;color:#dcebe2;background:#0d1d17;border-radius:12px;padding:11px;margin-top:12px}
+footer{text-align:center;color:#8da99a;font-size:11px;padding:8px}
+@media(max-width:360px){.card{width:58px;height:80px}.panel{padding:13px}}
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="logo">POKEREZA</div><div class="sub">Учимся играть в покер шаг за шагом</div></div><div class="tag">ОБУЧЕНИЕ</div></header>
+<section class="panel">
+  <div class="stats">
+    <div class="stat"><b id="played">0</b><span>Ответов дано</span></div>
+    <div class="stat"><b id="correct">0</b><span>Хороших решений</span></div>
+    <div class="stat"><b id="accuracy">—</b><span>Результат</span></div>
+  </div>
+  <div class="progress"><div id="progressBar"></div></div>
+  <div class="small" id="progressText">Ситуация 1 из 10 · начинаем с простого</div>
+</section>
+<section class="panel">
+  <div class="section-title">Выбери уровень</div>
+  <div class="actions">
+    <button class="action" id="level1">Уровень 1 · Основы</button>
+    <button class="action" id="level2">Уровень 2 · Стартовые карты</button>
+  </div>
+  <p class="small" id="levelDescription" style="margin:10px 0 0">Уровень 1: знакомство с базовыми решениями.</p>
+</section>
+<section class="panel">
+  <div class="row"><div class="section-title">Раздача</div><div class="small" id="handNum">Ситуация 1 из 10</div></div>
+  <div class="table">
+    <div class="eyebrow">Твои карты</div>
+    <div class="cards" id="holeCards"></div>
+    <div class="hand-title" id="handName"></div>
+    <div class="meta" id="meta"></div>
+  </div>
+  <div style="margin-top:15px"><div class="section-title">Что лучше сделать?</div><div class="small" id="prompt"></div></div>
+  <div class="actions" id="actions"></div>
+  <div id="result" class="result" hidden aria-live="polite"><h3 id="resultTitle"></h3><p id="resultText"></p></div>
+  <button class="next" id="next" hidden>Следующая ситуация</button>
+<div id="completion" class="result good" hidden aria-live="polite">
+  <h3 id="completionTitle">Начальный уровень пройден!</h3>
+  <p id="completionText">Ты прошёл все 10 ситуаций.</p>
+  <button class="next" id="restart">Пройти начальный уровень заново</button>
+  <button class="next" id="advanced" style="margin-top:8px">Перейти к следующему уровню</button>
+</div>
+</section>
+<section class="panel">
+  <div class="section-title">Простые подсказки</div>
+  <p class="small" style="margin:0">Малый блайнд — обязательная небольшая ставка. Большой блайнд — обязательная ставка побольше. Их ставят два игрока до начала раздачи.</p>
+  <div class="notice">«Сбросить» — отказаться от карт. «Пропустить» — остаться в раздаче, не добавляя фишки, если никто не поставил. «Уравнять» — добавить столько же фишек, сколько поставил другой игрок. «Повысить» — увеличить ставку.</div>
+</section>
+<footer>POKEREZA · Тренажёр для начинающих · Демо</footer>
+</main>
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+// Учебные ситуации идут от самых простых к более сложным.
+// Действия и объяснения намеренно сформулированы простым языком.
+const level1Hands = [
+ {cards:[['A','♥'],['K','♠']],level:'Очень легко',title:'У тебя очень сильные карты',meta:'До тебя никто не поставил. Малый блайнд — 5, большой блайнд — 10.',allowed:['fold','check','raise'],action:'raise',explain:'Лучший выбор — повысить ставку. Туз и король — очень сильные начальные карты. Ставка может заставить других сбросить карты или помочь выиграть больше фишек.'},
+ {cards:[['7','♣'],['2','♦']],level:'Очень легко',title:'У тебя слабые карты',meta:'Ты ходишь одним из первых. До тебя никто не повысил ставку.',allowed:['fold','check','raise'],action:'fold',explain:'Лучший выбор — сбросить карты. Семёрка и двойка редко помогают собрать сильную комбинацию. Не нужно участвовать в каждой раздаче.'},
+ {cards:[['Q','♠'],['Q','♥']],level:'Легко',title:'У тебя две дамы',meta:'До тебя никто не повысил ставку. Малый блайнд — 5, большой блайнд — 10.',allowed:['fold','check','raise'],action:'raise',explain:'Лучший выбор — повысить ставку. Две дамы — очень сильные начальные карты. Обычно с ними стоит начинать раздачу активной ставкой.'},
+ {cards:[['8','♠'],['J','♦']],level:'Легко',title:'Карты не очень сильные',meta:'Ты ходишь одним из первых. Другие игроки ещё не повышали ставку.',allowed:['fold','check','raise'],action:'fold',explain:'Лучше сбросить карты. Валет и восьмёрка разных мастей часто приводят к сложным ситуациям. Для начала выбирай более сильные карты.'},
+ {cards:[['A','♣'],['5','♣']],level:'Легко',title:'Туз и пятёрка одной масти',meta:'До тебя никто не повысил ставку. Малый блайнд — 5, большой блайнд — 10.',allowed:['fold','check','raise'],action:'raise',explain:'В этой учебной ситуации можно повысить ставку. Туз — сильная карта, а две карты одной масти иногда помогают собрать сильную комбинацию. Это не гарантирует победу.'},
+ {cards:[['K','♦'],['J','♠']],level:'Средне',title:'Хорошие, но не самые сильные карты',meta:'Другой игрок уже повысил ставку. Чтобы продолжить, нужно добавить фишки.',allowed:['fold','call','raise'],action:'fold',explain:'В этом примере лучше сбросить карты. Король и валет могут быть хорошими картами, но против повышения соперника они не всегда достаточно сильны. Не нужно продолжать каждую раздачу.'},
+ {cards:[['A','♠'],['Q','♥']],level:'Средне',title:'Туз и дама',meta:'До тебя никто не поставил. Ты можешь начать раздачу.',allowed:['fold','check','raise'],action:'raise',explain:'Лучший выбор — повысить ставку. Туз и дама — сильные карты. Так ты можешь выиграть обязательные ставки или начать раздачу с сильной рукой.'},
+ {cards:[['9','♣'],['9','♦']],level:'Средне',title:'У тебя пара девяток',meta:'Другой игрок сделал небольшую ставку. Чтобы продолжить, нужно добавить столько же фишек.',allowed:['fold','call','raise'],action:'call',explain:'В этом примере можно уравнять ставку и посмотреть следующие общие карты. Пара девяток уже является готовой парой, но если соперник поставит намного больше, решение может измениться.'},
+ {cards:[['A','♦'],['J','♦']],level:'Сложнее',title:'Туз и валет одной масти',meta:'Другой игрок немного повысил ставку. Чтобы продолжить, нужно добавить фишки.',allowed:['fold','call','raise'],action:'call',explain:'В этой учебной ситуации выберем уравнивание. Туз и валет одной масти — хорошие карты, но важно не вкладывать слишком много фишек без необходимости. В других условиях может подойти и повышение.'},
+ {cards:[['6','♠'],['6','♥']],level:'Сложнее',title:'Пара шестёрок против большой ставки',meta:'Другой игрок сделал крупную ставку. Ты ещё не вложил фишки в эту раздачу.',allowed:['fold','call','raise'],action:'fold',explain:'Здесь лучше сбросить карты. Пара шестёрок может быть сильнее карт соперника, но крупная ставка часто означает серьёзную руку. Для новичка важно уметь отказаться от сомнительной ситуации.'}
+];
+
+
+// Уровень 2: учимся выбирать стартовые карты до флопа. Блайнды везде указаны номиналами.
+const level2Hands = [
+ {cards:[['A','♠'],['A','♥']],level:'Очень легко',title:'Карманные тузы — сильнейшая стартовая пара',meta:'Ты ходишь после двух игроков. Малый блайнд — 5, большой блайнд — 10. До тебя никто не повысил.',allowed:['fold','call','raise'],action:'raise',explain:'Рекомендуем повысить ставку. Пара тузов — самая сильная стартовая пара. Повышение помогает увеличить банк и не даёт слишком многим игрокам бесплатно увидеть общие карты.'},
+ {cards:[['7','♣'],['2','♦']],level:'Очень легко',title:'Слабые карты разных мастей',meta:'Ты ходишь одним из первых. Малый блайнд — 5, большой блайнд — 10. До тебя никто не вошёл в раздачу.',allowed:['fold','call','raise'],action:'fold',explain:'Лучше сбросить карты. Семёрка и двойка разных мастей редко собирают сильную комбинацию. Позиция ранняя, поэтому за тобой ещё много игроков, которые могут получить сильные карты.'},
+ {cards:[['K','♠'],['K','♦']],level:'Легко',title:'У тебя пара королей',meta:'Малый блайнд — 5, большой блайнд — 10. До тебя никто не повышал ставку.',allowed:['fold','call','raise'],action:'raise',explain:'Повышай ставку. Пара королей — очень сильная стартовая рука, уступающая по силе только паре тузов. Обычно с ней стоит начинать активно.'},
+ {cards:[['J','♣'],['8','♦']],level:'Легко',title:'Валет и восьмёрка разных мастей',meta:'Ты ходишь одним из первых. Малый блайнд — 5, большой блайнд — 10.',allowed:['fold','call','raise'],action:'fold',explain:'Лучше сбросить. Карты не образуют пару, не одной масти и имеют заметный разрыв. Они могут иногда улучшиться, но на ранней позиции такая рука часто приводит к трудным решениям.'},
+ {cards:[['A','♥'],['5','♥']],level:'Легко',title:'Туз и пятёрка одной масти',meta:'Ты на поздней позиции. Малый блайнд — 5, большой блайнд — 10. До тебя все сбросили карты.',allowed:['fold','call','raise'],action:'raise',explain:'В этой учебной ситуации можно повысить. Туз даёт шанс на сильную старшую пару, а одна масть даёт возможность собрать флеш. Но это не гарантия победы: пятёрка — слабый второй номинал.'},
+ {cards:[['Q','♣'],['J','♣']],level:'Средне',title:'Дама и валет одной масти',meta:'Ты на поздней позиции. Малый блайнд — 5, большой блайнд — 10. До тебя никто не повышал.',allowed:['fold','call','raise'],action:'raise',explain:'Можно повысить ставку. Дама и валет одной масти хорошо взаимодействуют между собой: могут собрать пару, стрит или флеш. На поздней позиции такую руку обычно выгоднее разыгрывать активно.'},
+ {cards:[['9','♠'],['9','♦']],level:'Средне',title:'Средняя карманная пара',meta:'Ты на средней позиции. Малый блайнд — 5, большой блайнд — 10. До тебя никто не повышал.',allowed:['fold','call','raise'],action:'raise',explain:'Рекомендуем повысить. Пара девяток уже является готовой парой и часто впереди случайных двух карт соперника. Повышение помогает сократить число соперников и взять инициативу.'},
+ {cards:[['A','♦'],['10','♣']],level:'Средне',title:'Туз и десятка разных мастей',meta:'Ты ходишь одним из первых. Малый блайнд — 5, большой блайнд — 10.',allowed:['fold','call','raise'],action:'fold',explain:'Для этой учебной ситуации выберем сброс. Туз силён, но десятка другой масти слабее подходящих к нему высоких карт. На ранней позиции за тобой ещё много игроков. В других условиях решение может отличаться.'},
+ {cards:[['K','♥'],['Q','♥']],level:'Сложнее',title:'Король и дама одной масти',meta:'Ты на поздней позиции. Малый блайнд — 5, большой блайнд — 10. До тебя никто не повышал.',allowed:['fold','call','raise'],action:'raise',explain:'Повышение — хороший учебный выбор. Король и дама одной масти — сильные связанные карты: они могут собрать высокую пару, стрит или флеш. Но если после тебя соперник повысит, придётся оценить ситуацию заново.'},
+ {cards:[['8','♣'],['8','♦']],level:'Сложнее',title:'Пара восьмёрок против повышения',meta:'Соперник повысил до 30. Малый блайнд — 5, большой блайнд — 10. Ты находишься на средней позиции.',allowed:['fold','call','raise'],action:'call',explain:'В этой ситуации можно уравнять до 30, если повышение было обычным и за столом нет дополнительных обстоятельств. Пара восьмёрок может поймать третью восьмёрку на флопе. Не стоит автоматически повышать повторно: против сильного сопротивления эта рука не всегда впереди.'}
+];
+const labels = {
+ fold:'Сбросить (Fold)',
+ check:'Пропустить (Check)',
+ call:'Уравнять (Call)',
+ raise:'Повысить (Raise)'
+};
+let index=0, played=0, correct=0, answered=false, currentLevel=1;
+let hands=level1Hands;
+const $=id=>document.getElementById(id);
+function stats(){
+ $('played').textContent=played;$('correct').textContent=correct;
+ $('accuracy').textContent=played?Math.round(correct/played*100)+'%':'—';
+ try{localStorage.setItem('pokereza-training-stats',JSON.stringify({played,correct}));}catch(e){}
+}
+try{const s=JSON.parse(localStorage.getItem('pokereza-training-stats')||'null');if(s){played=s.played||0;correct=s.correct||0;}}catch(e){}
+function render(){
+ const h=hands[index]; answered=false;
+ $('level1').disabled=currentLevel===1; $('level2').disabled=currentLevel===2;
+ $('levelDescription').textContent=currentLevel===1?'Уровень 1: знакомство с базовыми решениями.':'Уровень 2: выбираем стартовые карты до флопа. Блайнды указаны номиналами 5 и 10.';
+ $('completion').hidden=true;
+ $('next').hidden=true;
+ $('handNum').textContent=`Ситуация ${index+1} из ${hands.length}`;
+ $('progressText').textContent=`Ситуация ${index+1} из ${hands.length} · ${h.level}`;
+ $('progressBar').style.width=`${index/hands.length*100}%`;
+ $('holeCards').innerHTML=h.cards.map(([r,s])=>`<div class="card ${['♥','♦'].includes(s)?'red':''}"><span class="rank">${r}</span><span class="suit">${s}</span></div>`).join('');
+ $('handName').textContent=h.title;$('meta').textContent=h.meta;
+ $('prompt').textContent='Выбери действие, которое кажется тебе лучшим.';
+ $('actions').innerHTML=h.allowed.map(action=>`<button class="action" data-action="${action}">${labels[action]}</button>`).join('');
+ $('result').hidden=true;$('next').hidden=true;
+ $('next').textContent='Следующая ситуация';
+ $('actions').querySelectorAll('[data-action]').forEach(btn=>btn.addEventListener('click',answer));
+ stats();
+}
+function answer(event){
+ if(answered)return; answered=true;
+ const choice=event.currentTarget.dataset.action,h=hands[index],ok=choice===h.action;
+ played++;if(ok)correct++;stats();
+ $('result').hidden=false;$('result').className='result '+(ok?'good':'bad');
+ $('resultTitle').textContent=ok?'Хороший выбор!':'Запомни этот случай';
+ $('resultText').textContent=h.explain+(ok?' Ты выбрал рекомендуемое действие.':` Ты выбрал «${labels[choice]}». В этой учебной ситуации рекомендуем: «${labels[h.action]}».`);
+ $('progressBar').style.width=`${(index+1)/hands.length*100}%`;
+ $('actions').querySelectorAll('button').forEach(b=>b.disabled=true);
+ if(index < hands.length - 1) {
+   $('next').hidden=false;
+ } else {
+   $('next').hidden=true;
+   $('completion').hidden=false;
+   $('completionTitle').textContent=currentLevel===1?'Начальный уровень пройден!':'Уровень 2 пройден!';
+   $('completionText').textContent=`${currentLevel===1?'Начальный уровень':'Уровень 2'} завершён. Ты ответил на все ${hands.length} ситуаций. Хороших решений: ${correct} из ${played} ответов за всё время. Можешь пройти этот уровень заново или переключиться на другой.`;
+   $('advanced').textContent=currentLevel===1?'Перейти к уровню 2':'Вернуться к уровню 1';
+   $('advanced').disabled=false;
+ }
+}
+$('next').addEventListener('click',()=>{if(index < hands.length-1){index++;render();}});
+$('restart').addEventListener('click',()=>{index=0;render();});
+function setLevel(level){currentLevel=level;hands=level===1?level1Hands:level2Hands;index=0;$('completion').hidden=true;render();}
+$('level1').addEventListener('click',()=>setLevel(1));
+$('level2').addEventListener('click',()=>setLevel(2));
+$('advanced').addEventListener('click',()=>setLevel(currentLevel===1?2:1));
+stats();render();
+</script>
+</body>
+</html>
