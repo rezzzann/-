@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#102d25">
+<title>POKEREZA — тренажёр покера</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#0b1713;--panel:#12251e;--felt:#176247;--line:#2a473a;--text:#f4f7f4;--muted:#a9c0b3;--accent:#d5ef9b;--red:#e45a63}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#102d25 0,#0b1713 55%);color:var(--text);font:16px/1.45 system-ui,-apple-system,sans-serif;min-height:100vh}
+main{max-width:520px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.logo{font-size:22px;font-weight:900;letter-spacing:1.2px}.tag{font-size:11px;color:var(--accent);border:1px solid #48664f;border-radius:20px;padding:5px 9px}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.panel{background:rgba(18,37,30,.96);border:1px solid var(--line);border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 12px 32px #0002}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#0d1d17;border-radius:12px;padding:10px;text-align:center}.stat b{display:block;font-size:21px}.stat span{font-size:11px;color:var(--muted)}
+.table{background:radial-gradient(ellipse at center,#237957,#12543e 70%);border:5px solid #4c3728;border-radius:48% / 32%;padding:20px 12px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;box-shadow:inset 0 0 0 2px #75a98b55}
+.eyebrow{font-size:11px;letter-spacing:1.4px;color:#d6f4e3;text-transform:uppercase}
+.cards{display:flex;gap:9px;justify-content:center}
+.card{width:65px;height:88px;border-radius:9px;background:#fff;color:#18231d;display:flex;flex-direction:column;justify-content:space-between;padding:7px;font-weight:800;box-shadow:0 4px 10px #0003}
+.card .rank{font-size:25px;line-height:1}.card .suit{font-size:22px;align-self:flex-end}.red{color:#c62828}
+.hand-title{font-weight:750;text-align:center}.meta{font-size:13px;color:#e0f0e6;text-align:center}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px 8px;font-weight:750}
+.action{background:#25483a;color:white;border:1px solid #3e6854}.action.primary{background:var(--accent);color:#183729}
+button:disabled{opacity:.45;cursor:not-allowed}
+.result{margin-top:14px;padding:13px;border-radius:12px;background:#0b1c15;border:1px solid var(--line)}
+.result.good{border-color:#6f9d52}.result.bad{border-color:#b86a57}
+.result h3{margin:0 0 5px;font-size:15px}.result p{margin:0;color:#d3e2d8;font-size:14px}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.section-title{font-weight:800;margin-bottom:10px}
+.small{font-size:12px;color:var(--muted)}
+.next{width:100%;margin-top:12px;background:#d5ef9b;color:#183729}
+footer{text-align:center;color:#8da99a;font-size:11px;padding:8px}
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="logo">POKEREZA</div><div class="sub">Тренажёр решений · Кэш-игра</div></div><div class="tag">НОВИЧОК</div></header>
+<section class="panel">
+  <div class="stats">
+    <div class="stat"><b id="played">0</b><span>Решений</span></div>
+    <div class="stat"><b id="correct">0</b><span>По стратегии</span></div>
+    <div class="stat"><b id="accuracy">—</b><span>Точность</span></div>
+  </div>
+</section>
+<section class="panel">
+  <div class="row"><div class="section-title">Твоя раздача</div><div class="small" id="handNum">Ситуация 1</div></div>
+  <div class="table">
+    <div class="eyebrow">Твои карманные карты</div>
+    <div class="cards" id="holeCards"></div>
+    <div class="hand-title" id="handName"></div>
+    <div class="meta" id="meta"></div>
+  </div>
+  <div style="margin-top:15px"><div class="section-title">Как поступишь?</div><div class="small" id="prompt"></div></div>
+  <div class="actions">
+    <button class="action" data-action="fold">Fold<br><span class="small">Сбросить</span></button>
+    <button class="action" data-action="call">Call<br><span class="small">Уравнять</span></button>
+    <button class="action primary" data-action="raise">Raise<br><span class="small">Повысить</span></button>
+  </div>
+  <div id="result" class="result" hidden aria-live="polite"><h3 id="resultTitle"></h3><p id="resultText"></p></div>
+  <button class="next" id="next" hidden>Следующая ситуация</button>
+</section>
+<section class="panel">
+  <div class="section-title">Чему учимся</div>
+  <p class="small" style="margin:0">На префлопе учитывай силу стартовой руки, свою позицию и действия игроков до тебя. Это учебные примеры для новичков, а не универсальная стратегия для любой игры.</p>
+</section>
+<footer>Демо-прототип · Результаты пока сохраняются только в этом браузере</footer>
+</main>
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+const hands = [
+ {cards:[['A','♥'],['K','♠']],pos:'CO',blinds:'0,5 / 1 BB',stack:'100 BB',action:'raise',title:'Сильная стартовая рука',prompt:'До тебя все сбросили. Ты на cutoff (CO).',explain:'Правильно: Raise. A-K — сильная рука, и открытие рейзом помогает забрать блайнды или играть крупный банк с инициативой.'},
+ {cards:[['7','♣'],['2','♦']],pos:'UTG',blinds:'0,5 / 1 BB',stack:'100 BB',action:'fold',title:'Слабая разномастная рука',prompt:'Ты первый принимаешь решение за столом (UTG).',explain:'Правильно: Fold. 7-2 разномастные плохо реализуют эквити и часто попадают под доминацию. Для новичка безопаснее сбросить.'},
+ {cards:[['Q','♠'],['Q','♥']],pos:'BTN',blinds:'0,5 / 1 BB',stack:'100 BB',action:'raise',title:'Карманная пара дам',prompt:'До тебя все сбросили. Ты на баттоне (BTN).',explain:'Правильно: Raise. QQ — очень сильная стартовая рука. Обычно стоит открывать рейзом, а не просто лимпить.'},
+ {cards:[['8','♠'],['J','♦']],pos:'UTG',blinds:'0,5 / 1 BB',stack:'100 BB',action:'fold',title:'Пограничная рука вне позиции',prompt:'Ты первый принимаешь решение из ранней позиции.',explain:'Правильно для упрощённой стратегии новичка: Fold. J-8 разномастные часто создают сложные ситуации и редко выигрывают большой банк.'},
+ {cards:[['A','♣'],['5','♣']],pos:'BTN',blinds:'0,5 / 1 BB',stack:'100 BB',action:'raise',title:'Одномастный туз',prompt:'Все до тебя сбросили. Ты на баттоне.',explain:'Для учебного упрощённого диапазона: Raise. A-5 одной масти может иметь потенциал натсового флеш-дро и блокирует часть сильных тузов соперников.'}
+];
+let index=0, played=0, correct=0, answered=false;
+const $=id=>document.getElementById(id);
+function render(){
+ const h=hands[index%hands.length]; answered=false;
+ $('handNum').textContent='Ситуация '+(index+1);
+ $('holeCards').innerHTML=h.cards.map(([r,s])=>`<div class="card ${['♥','♦'].includes(s)?'red':''}"><span class="rank">${r}</span><span class="suit">${s}</span></div>`).join('');
+ $('handName').textContent=h.title;
+ $('meta').textContent=`Позиция: ${h.pos} · Блайнды: ${h.blinds} · Стек: ${h.stack}`;
+ $('prompt').textContent=h.prompt;
+ $('result').hidden=true;$('next').hidden=true;
+ document.querySelectorAll('[data-action]').forEach(b=>b.disabled=false);
+}
+function stats(){
+ $('played').textContent=played;$('correct').textContent=correct;
+ $('accuracy').textContent=played?Math.round(correct/played*100)+'%':'—';
+ try{localStorage.setItem('pokereza-training-stats',JSON.stringify({played,correct}));}catch(e){}
+}
+try{const s=JSON.parse(localStorage.getItem('pokereza-training-stats')||'null');if(s){played=s.played||0;correct=s.correct||0;}}catch(e){}
+stats();
+document.querySelectorAll('[data-action]').forEach(btn=>btn.addEventListener('click',()=>{
+ if(answered)return; answered=true;
+ const h=hands[index%hands.length],choice=btn.dataset.action,ok=choice===h.action;
+ played++;if(ok)correct++;stats();
+ $('result').hidden=false;$('result').className='result '+(ok?'good':'bad');
+ $('resultTitle').textContent=ok?'Хорошее решение':'Не лучший выбор в этой учебной ситуации';
+ $('resultText').textContent=h.explain+(ok?' Ты выбрал рекомендуемое действие.':` Ты выбрал ${choice.toUpperCase()}, а в этом примере рекомендовано ${h.action.toUpperCase()}.`);
+ $('next').hidden=false;
+ document.querySelectorAll('[data-action]').forEach(b=>b.disabled=true);
+}));
+$('next').addEventListener('click',()=>{index++;render();});
+render();
+</script>
+</body>
+</html>
